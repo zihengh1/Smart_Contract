@@ -1,0 +1,62 @@
+1.
+//設定設定會員想要定存的金額
+mapping (address => uint256) private certificate;
+
+2.
+// 設定會員購買定存期數
+mapping (address => uint256) private period;
+
+3.
+//  
+event PurchaseCertificateEvent(address indexed from, uint256 value1, uint256 value2, uint256 timestamp);
+event ContractExpiryEvent(address indexed from, uint256 value, uint256 timestamp);
+event EarlyTerminationEvent(address indexed from, uint256 value, uint256 timestamp);
+	
+
+4.
+// 購買定存
+function purchase(uint256 etherValue, uint256 periodValue1) public  payable {	// etherValue means Money we want to deposit, periodValue1 means the deposit period
+        uint256 weiValue = etherValue * 1 ether; 
+        require(periodValue1 <= 12, "your input are wrong");	// we limit the time period to 12, because the question provided by TA has already set this time bound.
+        
+	balance[msg.sender] += weiValue;	// add the deposit money we bought into our bank account
+        period[msg.sender] = periodValue1;	// send the deposit period we bought
+        certificate[msg.sender] += weiValue;	
+
+        emit PurchaseCertificateEvent(msg.sender, etherValue, periodValue1, now);
+}
+
+5.
+// 合約期滿
+function contractDone() public {	// Deposit Maturity
+        uint256 weiValue = certificate[msg.sender];	// get the certificate variable
+        uint256 period1 =  period[msg.sender];	// get the period variable
+        
+	// start to calculate the money costumers should get
+	weiValue = weiValue * period1 / 100;
+	balance[msg.sender] += weiValue;
+
+        certificate[msg.sender] = 0;	// reset the certificate
+        period[msg.sender] = 0;	// reset the period
+        
+	emit ContractExpiryEvent(msg.sender,weiValue, now);
+}
+
+6.
+//  提前解約
+function earlyTerminate(uint256 periodValue2) public{	// if our costumers terminate the contract early
+        uint256 weiValue = certificate[msg.sender];	// get the certificate variable
+        uint256 period1 = period[msg.sender];	// get the period variable
+        uint256 period2 = periodValue2;	// the period we had already done
+        
+        require(period2 < period1, "your input are wrong");	if the period2 shorter than period1, then error will be issued
+        
+	// start to calculate the money costumers should get
+        weiValue = weiValue * period2 / 100;	// this formula is according by TA's schema
+        
+        balance[msg.sender] += weiValue;	// add the rest of money costumers should get into bank account
+        period[msg.sender] = 0;	// reset the period
+        certificate[msg.sender] = 0;	// reset the certificate
+        
+        emit EarlyTerminationEvent(msg.sender, weiValue, now);
+}
